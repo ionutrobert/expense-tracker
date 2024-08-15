@@ -1,27 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, FormEvent, ChangeEvent } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+
+type Expense = {
+  id: number;
+  date: string;
+  category: string;
+  amount: number;
+}
+
+type NewExpense = Omit<Expense, 'id'>
 
 export default function Home() {
-  const [expenses, setExpenses] = useState([])
-  const [categories, setCategories] = useState([])
-  const [newExpense, setNewExpense] = useState({ date: '', category: '', amount: '' })
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [categories, setCategories] = useState<string[]>([])
+  const [newExpense, setNewExpense] = useState<NewExpense>({ date: '', category: '', amount: 0 })
   const [newCategory, setNewCategory] = useState('')
-  const [editingExpense, setEditingExpense] = useState(null)
-  const [editingCategory, setEditingCategory] = useState(null)
   const [currency, setCurrency] = useState('EUR')
 
-  const addExpense = (e) => {
+  const addExpense = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (newExpense.date && newExpense.category && newExpense.amount) {
-      setExpenses([...expenses, { ...newExpense, id: Date.now() }].sort((a, b) => new Date(b.date) - new Date(a.date)))
-      setNewExpense({ date: '', category: '', amount: '' })
+      setExpenses([...expenses, { ...newExpense, id: Date.now() }].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
+      setNewExpense({ date: '', category: '', amount: 0 })
     }
   }
 
-  const addCategory = (e) => {
+  const addCategory = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (newCategory && !categories.includes(newCategory)) {
       setCategories([...categories, newCategory])
@@ -29,182 +35,98 @@ export default function Home() {
     }
   }
 
-  const updateExpense = (id, updatedExpense) => {
-    setExpenses(expenses.map(expense => 
-      expense.id === id ? { ...expense, ...updatedExpense } : expense
-    ).sort((a, b) => new Date(b.date) - new Date(a.date)))
-    setEditingExpense(null)
-  }
-
-  const deleteExpense = (id) => {
-    setExpenses(expenses.filter(expense => expense.id !== id))
-  }
-
-  const updateCategory = (oldCategory, newCategory) => {
-    setCategories(categories.map(cat => cat === oldCategory ? newCategory : cat))
-    setExpenses(expenses.map(expense => 
-      expense.category === oldCategory ? { ...expense, category: newCategory } : expense
-    ))
-    setEditingCategory(null)
-  }
-
-  const deleteCategory = (category) => {
-    setCategories(categories.filter(cat => cat !== category))
-    setExpenses(expenses.filter(expense => expense.category !== category))
+  const handleExpenseChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setNewExpense({ ...newExpense, [name]: name === 'amount' ? parseFloat(value) : value })
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-4">Expense Tracker</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Add Expense</h2>
-            <form onSubmit={addExpense} className="space-y-2">
-              <input
-                type="date"
-                value={newExpense.date}
-                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-                className="w-full p-2 bg-gray-800 rounded"
-                required
-              />
-              <select
-                value={newExpense.category}
-                onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                className="w-full p-2 bg-gray-800 rounded"
-                required
-              >
-                <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                value={newExpense.amount}
-                onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                placeholder="Amount"
-                className="w-full p-2 bg-gray-800 rounded"
-                required
-              />
-              <button type="submit" className="w-full p-2 bg-blue-600 rounded hover:bg-blue-700">
-                Add Expense
-              </button>
-            </form>
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Add Category</h2>
-            <form onSubmit={addCategory} className="space-y-2">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="New Category"
-                className="w-full p-2 bg-gray-800 rounded"
-                required
-              />
-              <button type="submit" className="w-full p-2 bg-green-600 rounded hover:bg-green-700">
-                Add Category
-              </button>
-            </form>
-          </div>
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Sidebar */}
+      <div className="w-64 bg-white dark:bg-gray-800 p-6 space-y-4">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Expense Tracker</h2>
+        <nav>
+          <a href="#" className="block py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Dashboard</a>
+          <a href="#" className="block py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Expenses</a>
+          <a href="#" className="block py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Categories</a>
+          <a href="#" className="block py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Settings</a>
+        </nav>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 p-10 space-y-8">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+
+        {/* Add Expense Form */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Add Expense</h2>
+          <form onSubmit={addExpense} className="space-y-4">
+            <input
+              type="date"
+              name="date"
+              value={newExpense.date}
+              onChange={handleExpenseChange}
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+              required
+            />
+            <select
+              name="category"
+              value={newExpense.category}
+              onChange={handleExpenseChange}
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+              required
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat, index) => (
+                <option key={index} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              name="amount"
+              value={newExpense.amount || ''}
+              onChange={handleExpenseChange}
+              placeholder="Amount"
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+              required
+            />
+            <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Add Expense</button>
+          </form>
         </div>
-        
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-2">Expenses</h2>
+
+        {/* Add Category Form */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Add Category</h2>
+          <form onSubmit={addCategory} className="space-y-4">
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setNewCategory(e.target.value)}
+              placeholder="New Category"
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+              required
+            />
+            <button type="submit" className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Add Category</button>
+          </form>
+        </div>
+
+        {/* Expense List */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Recent Expenses</h2>
           <ul className="space-y-2">
-            {expenses.map(expense => (
-              <li key={expense.id} className="flex items-center justify-between bg-gray-800 p-2 rounded">
-                {editingExpense === expense.id ? (
-                  <form onSubmit={(e) => {
-                    e.preventDefault()
-                    updateExpense(expense.id, editingExpense)
-                  }} className="flex-1 flex space-x-2">
-                    <input
-                      type="date"
-                      value={editingExpense.date}
-                      onChange={(e) => setEditingExpense({...editingExpense, date: e.target.value})}
-                      className="flex-1 p-1 bg-gray-700 rounded"
-                    />
-                    <select
-                      value={editingExpense.category}
-                      onChange={(e) => setEditingExpense({...editingExpense, category: e.target.value})}
-                      className="flex-1 p-1 bg-gray-700 rounded"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      value={editingExpense.amount}
-                      onChange={(e) => setEditingExpense({...editingExpense, amount: e.target.value})}
-                      className="flex-1 p-1 bg-gray-700 rounded"
-                    />
-                    <button type="submit" className="p-1 bg-blue-600 rounded hover:bg-blue-700">
-                      Save
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    <span>{expense.date} - {expense.category} - {currency} {expense.amount}</span>
-                    <div>
-                      <button onClick={() => setEditingExpense({...expense})} className="p-1 text-blue-400 hover:text-blue-300">
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button onClick={() => deleteExpense(expense.id)} className="p-1 text-red-400 hover:text-red-300">
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </>
-                )}
+            {expenses.map((expense) => (
+              <li key={expense.id} className="flex justify-between items-center text-gray-600 dark:text-gray-300">
+                <span>{expense.date}</span>
+                <span>{expense.category}</span>
+                <span>{currency} {expense.amount.toFixed(2)}</span>
               </li>
             ))}
           </ul>
         </div>
-        
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-2">Categories</h2>
-          <ul className="space-y-2">
-            {categories.map(category => (
-              <li key={category} className="flex items-center justify-between bg-gray-800 p-2 rounded">
-                {editingCategory === category ? (
-                  <form onSubmit={(e) => {
-                    e.preventDefault()
-                    updateCategory(category, editingCategory)
-                  }} className="flex-1 flex space-x-2">
-                    <input
-                      type="text"
-                      value={editingCategory}
-                      onChange={(e) => setEditingCategory(e.target.value)}
-                      className="flex-1 p-1 bg-gray-700 rounded"
-                    />
-                    <button type="submit" className="p-1 bg-blue-600 rounded hover:bg-blue-700">
-                      Save
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    <span>{category}</span>
-                    <div>
-                      <button onClick={() => setEditingCategory(category)} className="p-1 text-blue-400 hover:text-blue-300">
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button onClick={() => deleteCategory(category)} className="p-1 text-red-400 hover:text-red-300">
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-        
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-2">Expense Trend</h2>
+
+        {/* Expense Trend Graph */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Expense Trend</h2>
           <LineChart width={600} height={300} data={expenses}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
@@ -214,15 +136,16 @@ export default function Home() {
             <Line type="monotone" dataKey="amount" stroke="#8884d8" />
           </LineChart>
         </div>
-        
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-2">Settings</h2>
-          <div className="flex items-center space-x-2">
-            <span>Currency:</span>
+
+        {/* Settings */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Settings</h2>
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-600 dark:text-gray-300">Currency:</span>
             <select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="p-2 bg-gray-800 rounded"
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setCurrency(e.target.value)}
+              className="p-2 border rounded dark:bg-gray-700 dark:text-white"
             >
               <option value="EUR">EUR</option>
               <option value="USD">USD</option>
