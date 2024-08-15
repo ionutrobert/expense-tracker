@@ -1,113 +1,236 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 export default function Home() {
+  const [expenses, setExpenses] = useState([])
+  const [categories, setCategories] = useState([])
+  const [newExpense, setNewExpense] = useState({ date: '', category: '', amount: '' })
+  const [newCategory, setNewCategory] = useState('')
+  const [editingExpense, setEditingExpense] = useState(null)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [currency, setCurrency] = useState('EUR')
+
+  const addExpense = (e) => {
+    e.preventDefault()
+    if (newExpense.date && newExpense.category && newExpense.amount) {
+      setExpenses([...expenses, { ...newExpense, id: Date.now() }].sort((a, b) => new Date(b.date) - new Date(a.date)))
+      setNewExpense({ date: '', category: '', amount: '' })
+    }
+  }
+
+  const addCategory = (e) => {
+    e.preventDefault()
+    if (newCategory && !categories.includes(newCategory)) {
+      setCategories([...categories, newCategory])
+      setNewCategory('')
+    }
+  }
+
+  const updateExpense = (id, updatedExpense) => {
+    setExpenses(expenses.map(expense => 
+      expense.id === id ? { ...expense, ...updatedExpense } : expense
+    ).sort((a, b) => new Date(b.date) - new Date(a.date)))
+    setEditingExpense(null)
+  }
+
+  const deleteExpense = (id) => {
+    setExpenses(expenses.filter(expense => expense.id !== id))
+  }
+
+  const updateCategory = (oldCategory, newCategory) => {
+    setCategories(categories.map(cat => cat === oldCategory ? newCategory : cat))
+    setExpenses(expenses.map(expense => 
+      expense.category === oldCategory ? { ...expense, category: newCategory } : expense
+    ))
+    setEditingCategory(null)
+  }
+
+  const deleteCategory = (category) => {
+    setCategories(categories.filter(cat => cat !== category))
+    setExpenses(expenses.filter(expense => expense.category !== category))
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-4">Expense Tracker</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Add Expense</h2>
+            <form onSubmit={addExpense} className="space-y-2">
+              <input
+                type="date"
+                value={newExpense.date}
+                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                className="w-full p-2 bg-gray-800 rounded"
+                required
+              />
+              <select
+                value={newExpense.category}
+                onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
+                className="w-full p-2 bg-gray-800 rounded"
+                required
+              >
+                <option value="">Select Category</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                value={newExpense.amount}
+                onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                placeholder="Amount"
+                className="w-full p-2 bg-gray-800 rounded"
+                required
+              />
+              <button type="submit" className="w-full p-2 bg-blue-600 rounded hover:bg-blue-700">
+                Add Expense
+              </button>
+            </form>
+          </div>
+          
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Add Category</h2>
+            <form onSubmit={addCategory} className="space-y-2">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="New Category"
+                className="w-full p-2 bg-gray-800 rounded"
+                required
+              />
+              <button type="submit" className="w-full p-2 bg-green-600 rounded hover:bg-green-700">
+                Add Category
+              </button>
+            </form>
+          </div>
+        </div>
+        
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-2">Expenses</h2>
+          <ul className="space-y-2">
+            {expenses.map(expense => (
+              <li key={expense.id} className="flex items-center justify-between bg-gray-800 p-2 rounded">
+                {editingExpense === expense.id ? (
+                  <form onSubmit={(e) => {
+                    e.preventDefault()
+                    updateExpense(expense.id, editingExpense)
+                  }} className="flex-1 flex space-x-2">
+                    <input
+                      type="date"
+                      value={editingExpense.date}
+                      onChange={(e) => setEditingExpense({...editingExpense, date: e.target.value})}
+                      className="flex-1 p-1 bg-gray-700 rounded"
+                    />
+                    <select
+                      value={editingExpense.category}
+                      onChange={(e) => setEditingExpense({...editingExpense, category: e.target.value})}
+                      className="flex-1 p-1 bg-gray-700 rounded"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      value={editingExpense.amount}
+                      onChange={(e) => setEditingExpense({...editingExpense, amount: e.target.value})}
+                      className="flex-1 p-1 bg-gray-700 rounded"
+                    />
+                    <button type="submit" className="p-1 bg-blue-600 rounded hover:bg-blue-700">
+                      Save
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <span>{expense.date} - {expense.category} - {currency} {expense.amount}</span>
+                    <div>
+                      <button onClick={() => setEditingExpense({...expense})} className="p-1 text-blue-400 hover:text-blue-300">
+                        <PencilIcon className="h-5 w-5" />
+                      </button>
+                      <button onClick={() => deleteExpense(expense.id)} className="p-1 text-red-400 hover:text-red-300">
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-2">Categories</h2>
+          <ul className="space-y-2">
+            {categories.map(category => (
+              <li key={category} className="flex items-center justify-between bg-gray-800 p-2 rounded">
+                {editingCategory === category ? (
+                  <form onSubmit={(e) => {
+                    e.preventDefault()
+                    updateCategory(category, editingCategory)
+                  }} className="flex-1 flex space-x-2">
+                    <input
+                      type="text"
+                      value={editingCategory}
+                      onChange={(e) => setEditingCategory(e.target.value)}
+                      className="flex-1 p-1 bg-gray-700 rounded"
+                    />
+                    <button type="submit" className="p-1 bg-blue-600 rounded hover:bg-blue-700">
+                      Save
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <span>{category}</span>
+                    <div>
+                      <button onClick={() => setEditingCategory(category)} className="p-1 text-blue-400 hover:text-blue-300">
+                        <PencilIcon className="h-5 w-5" />
+                      </button>
+                      <button onClick={() => deleteCategory(category)} className="p-1 text-red-400 hover:text-red-300">
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-2">Expense Trend</h2>
+          <LineChart width={600} height={300} data={expenses}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="amount" stroke="#8884d8" />
+          </LineChart>
+        </div>
+        
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-2">Settings</h2>
+          <div className="flex items-center space-x-2">
+            <span>Currency:</span>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="p-2 bg-gray-800 rounded"
+            >
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="RON">RON</option>
+            </select>
+          </div>
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+    </div>
+  )
 }
