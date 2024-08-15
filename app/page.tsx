@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import {
@@ -7,9 +7,13 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
 } from "recharts";
 import kv from "../lib/kv"; // Import the KV client
 
@@ -169,6 +173,17 @@ export default function Home() {
   const totalBalance =
     combinedData.length > 0 ? combinedData[combinedData.length - 1].balance : 0;
 
+  const incomeTotal = incomes.reduce((sum, income) => sum + income.amount, 0);
+  const expenseTotal = expenses.reduce(
+    (sum, expense) => sum + Math.abs(expense.amount),
+    0
+  );
+
+  // Define the colors for the Pie Charts
+  const incomeColors = ["#5ccf79", "#009c1a", "#22b600", "#59993d", "#85d762"];
+  const expenseColors = ["#FF8042", "#e57138", "#e78e46", "#ec905d", "#b65b28"];
+  const balanceColors = ["#5ccf79", "#FF8042"];
+
   return (
     <div className="min-h-screen bg-gray-900 text-white py-6 flex flex-col items-center">
       <div className="max-w-4xl w-full">
@@ -181,6 +196,20 @@ export default function Home() {
           </p>
         </div>
 
+        <div className="bg-gray-800 p-4 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold">Total Income</h2>
+          <p className="text-2xl text-green-500">
+            {currency} {incomeTotal.toFixed(2)}
+          </p>
+        </div>
+
+        <div className="bg-gray-800 p-4 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold">Total Expenses</h2>
+          <p className="text-2xl text-red-500">
+            {currency} {expenseTotal.toFixed(2)}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           <div>
             <h3 className="text-lg font-semibold text-center">Income Trend</h3>
@@ -189,7 +218,7 @@ export default function Home() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip />
+                <RechartsTooltip />
                 <Legend />
                 <Line type="monotone" dataKey="amount" stroke="#00C49F" />
               </LineChart>
@@ -203,7 +232,7 @@ export default function Home() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip />
+                <RechartsTooltip />
                 <Legend />
                 <Line type="monotone" dataKey="amount" stroke="#FF8042" />
               </LineChart>
@@ -217,10 +246,100 @@ export default function Home() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip />
+                <RechartsTooltip />
                 <Legend />
                 <Line type="monotone" dataKey="balance" stroke="#8884d8" />
               </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Pie Charts */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+          {/* Income Distribution Pie Chart */}
+          <div>
+            <h3 className="text-lg font-semibold text-center">
+              Income Distribution
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={incomeCategories.map((category) => ({
+                    name: category,
+                    value: incomes
+                      .filter((income) => income.category === category)
+                      .reduce((sum, income) => sum + income.amount, 0),
+                  }))}
+                  dataKey="value"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  labelLine={false}
+                >
+                  {incomeCategories.map((category, index) => (
+                    <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Expense Distribution Pie Chart */}
+          <div>
+            <h3 className="text-lg font-semibold text-center">
+              Expense Distribution
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={expenseCategories.map((category) => ({
+                    name: category,
+                    value: expenses
+                      .filter((expense) => expense.category === category)
+                      .reduce(
+                        (sum, expense) => sum + Math.abs(expense.amount),
+                        0
+                      ),
+                  }))}
+                  dataKey="value"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  labelLine={false}
+                >
+                  {expenseCategories.map((category, index) => (
+                    <Cell key={`cell-${index}`} fill={expenseColors[index % expenseColors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Balance Distribution Pie Chart */}
+          <div>
+            <h3 className="text-lg font-semibold text-center">
+              Balance Distribution
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: "Total Income", value: incomeTotal },
+                    { name: "Total Expenses", value: expenseTotal },
+                  ]}
+                  dataKey="value"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  labelLine={false}
+                >
+                  <Cell key="income" fill={balanceColors[0]} />
+                  <Cell key="expense" fill={balanceColors[1]} />
+                </Pie>
+                <Tooltip />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
