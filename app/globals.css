@@ -25,6 +25,9 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+button:hover {
+  color: #FF6347; /* A slightly different red on hover */
+}
 
 @layer utilities {
   .text-balance {
